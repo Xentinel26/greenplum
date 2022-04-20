@@ -6,7 +6,7 @@ show gp_server_version;
 -- create simple schemas and table
 create schema finance;
 create schema rh;
-
+create schema external;
 create table finance.stock(
     id bigserial ,
     date_point date,
@@ -18,6 +18,8 @@ create table finance.stock(
     close numeric(20,8),
     stock varchar(50)
 ) distributed by (stock);
+
+
 
 create table finance.fast_stock(
     id bigserial ,
@@ -62,7 +64,7 @@ show datestyle ;
 set datestyle = DMY;
 
 COPY finance.stock(
-                   date_point,
+                  date_point,
                   low,
                   open,
                   volume,
@@ -73,9 +75,12 @@ COPY finance.stock(
                   ) from '/home/gpadmin/AAL.csv' with header delimiter ',';
 
 delete from finance.stock;
+truncate finance.stock;
 
 insert into finance.stock(date_point, low, open, volume, high, adjusted, close, stock)
 values (now(), 0,0,0,0,0,0,'Stock');
+
+select count(*) from finance.stock;
 
 COPY finance.stock(
                    date_point,
@@ -102,9 +107,8 @@ select count(*)
     from finance.stock;
 
 
+truncate finance.stock;
 
-
-gpload -f sp500.csv -l sp500_log -W -v
 
 gpload -f sp500.yml -W -v
 gpload -f sp500-fast.yml -W -v
@@ -115,5 +119,23 @@ from pg_locks
 ;
 select query, *
 from pg_stat_activity;
+
+EXPLAIN analyse verbose
+select *
+from finance.stock
+where stock.stock = 'AAL' and
+      id in( 28326489);
+
+
+
+
+show all ;
+
+
+select query, now() - query_start, state, *
+from pg_stat_activity;
+
+
+
 
 

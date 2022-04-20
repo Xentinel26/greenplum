@@ -42,28 +42,29 @@ SELECT oid, * FROM pg_tablespace ;
 -- Encontrar tablas en un TS
 select *
 from pg_tables
-where tablespace = 'fast_ssd_ts';mo
+where tablespace = 'fast_ssd_ts';
 
 drop table finance.tabla_ejemplo_ts;
 
 drop tablespace fast_ssd_ts;
 
 -- create table
-
+drop table finance.empleado;
 create table finance.empleado(
     id bigserial ,
+    clave_empleado varchar(30),
     nombre varchar(60),
     apellido_paterno varchar(60),
     apellido_materno varchar(60),
     fecha_nacimiento date,
     pais    varchar(90),
     -- Constraint Unique como un super conjunto de la llave de distribucion
-    unique (id, nombre, pais)
-) distributed by (id, nombre);
+    unique (clave_empleado)
+) distributed by (id, nombre, clave_empleado);
 
 
 drop table if exists finance.empleado;
-
+select * from finance.empleado;
 create table finance.empleado(
     id bigserial ,
     -- Unique Constraint coincide con la llave de distribución
@@ -77,7 +78,7 @@ create table finance.empleado(
 
 
 drop table if exists finance.empleado;
-
+select * from finance.empleado
 create table finance.empleado(
     id bigserial ,
     nombre varchar(60) not null,
@@ -130,6 +131,10 @@ create table finance.foo(
 with (appendonly = true)
 distributed by (a);
 
+select *
+    from finance.foo;
+
+
 drop table if exists finance.foo;
 ---  Append optimized new way
 create table finance.foo(
@@ -145,6 +150,10 @@ from finance.foo;
 
 select pg_size_pretty (pg_total_relation_size('finance.stock'));
 
+select *
+from finance.stock
+limit 100
+
 create table finance.stock_compressed(
     id bigserial ,
     date_point date,
@@ -152,7 +161,7 @@ create table finance.stock_compressed(
     open numeric(20,8),
     volume numeric(20,8),
     high numeric(20,8),
-    adjusted numeric(20,8) encoding (compresstype = rle_type, compresslevel = 9),
+    adjusted numeric(20,8) encoding (compresstype = rle_type, compresslevel = 4),
     close numeric(20,8) encoding (compresstype = ZSTD, compresslevel = 19),
     stock varchar(50) encoding (compresstype = ZLIB , compresslevel = 9)
 )
@@ -229,7 +238,7 @@ create table finance.stock_full_compressed(
     close numeric(20,8) encoding (compresstype = ZSTD, compresslevel = 19),
     stock varchar(50) encoding (compresstype = ZLIB , compresslevel = 9)
 )
-with (appendonly = true, orientation = column, compresstype =zlib , compresslevel = 9)
+with (appendonly = true, orientation = column, compresstype =zlib , compresslevel = 9 )
 distributed by (stock);
 
 insert into  finance.stock_full_compressed
@@ -260,23 +269,23 @@ CREATE TABLE finance.T3
     c3     text,
     COLUMN c3 ENCODING (compresstype = RLE_TYPE)
 )
-    WITH (appendonly = true, orientation = column)
-    PARTITION BY RANGE (c3)
-        (
-        START ('1900-01-01'::DATE) END ('2018-12-31'::DATE),
-        COLUMN c3 ENCODING (compresstype=zlib),
-        start ('2019-01-01'::date) end ('2100-12-31'::date)
-        );
+WITH (appendonly = true, orientation = column)
+PARTITION BY RANGE (c3)
+    (
+    START ('1900-01-01'::DATE) END ('2018-12-31'::DATE),
+    COLUMN c3 ENCODING (compresstype=zlib),
+    start ('2019-01-01'::date) end ('2100-12-31'::date)
+    );
 
 
 -- Partición por día
-CREATE TABLE finance.sales (id int, date date, amt decimal(10,2))
+CREATE TABLE finance.sales (id int, fecha date, amt decimal(10,2))
 DISTRIBUTED BY (id)
-PARTITION BY RANGE (date)
+PARTITION BY RANGE (fecha)
 (
    START (date '2016-01-01') INCLUSIVE
    END (date '2017-01-01') EXCLUSIVE
-   EVERY (INTERVAL '1 day')
+   EVERY (INTERVAL '1 days')
 );
 
 --- Partición por año
@@ -301,7 +310,7 @@ CREATE TABLE finance.list_partition (
                       id    int,
                       rank  int,
                       year  int,
-                      gender char(1),
+                      gender char(1) check ( gender in ('F', 'M') ),
                       count int
                   )
 DISTRIBUTED BY (id)
