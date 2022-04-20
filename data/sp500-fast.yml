@@ -1,0 +1,32 @@
+---
+VERSION: 1.0.0.1
+DATABASE: greenplum-course
+USER: usuario
+HOST: mdwh
+PORT: 5432
+GPLOAD:
+   INPUT:
+    - SOURCE:
+         LOCAL_HOSTNAME:
+           - mdwh
+         PORT: 9090
+         FILE: 
+           - /home/gpadmin/sp500.csv
+    - COLUMNS:
+           - date_point: text
+           - low: float4
+           - open: float4 
+           - volume: float4
+           - high: float4
+           - close: float4
+           - adjusted: float4
+           - stock: text
+    - FORMAT: csv
+    - HEADER: true 
+    - ERROR_LIMIT: 100
+    - LOG_ERRORS: true
+   EXTERNAL:
+    - SCHEMA: 'external'
+   OUTPUT:
+    - TABLE: finance.fast_stock
+    - MODE: insert
